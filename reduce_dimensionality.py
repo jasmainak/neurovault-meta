@@ -12,6 +12,8 @@ from nilearn.image import resample_to_img
 # 3. weighting of different collections
 #    (some are subject level, some are group level)
 # 4. weighting features -- e.g., cog atlas terms
+# 5. dirty_cat for labels using ngram similarities (SimilarityEncoder)
+# 6. Encoding problem = terms to maps. Decoding problem = maps to terms
 
 # get data / list of files
 nv_data = datasets.fetch_neurovault(max_images=100)
