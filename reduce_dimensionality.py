@@ -38,7 +38,3 @@ img_shape = img.get_data().shape
 
 masker = NiftiMapsMasker(maps)
 X = masker.fit_transform(imgs)
-
-# look at the metadata
-if False:
-    metadata.to_csv('metadata.csv', encoding='utf-8')
