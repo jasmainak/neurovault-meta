@@ -1,36 +1,40 @@
-import scipy
-
+import matplotlib.pyplot as plt
 import pandas as pd
 import nibabel as nib
 
 from nilearn import datasets
-from nilearn.datasets import fetch_neurovault_ids
+from nilearn.decomposition import DictLearning
 from nilearn import plotting
-from nilearn.image import new_img_like, load_img, math_img
 
-# These ids were determined by querying neurovault like this:
-
-# from nilearn.datasets import fetch_neurovault, neurovault
-
-# nv_data = fetch_neurovault(
-#     max_images=7,
-#     cognitive_paradigm_cogatlas=neurovault.Contains('stop signal'),
-#     contrast_definition=neurovault.Contains('succ', 'stop', 'go'),
-#     map_type='T map')
-
-# print([meta['id'] for meta in nv_data['images_meta']])
-
+# TODOs
+#
 # 1. feature extraction / metadata
 # 2. dimensionality reduction
 
-nv_data = datasets.fetch_neurovault(max_images=None, mode='offline')
+# get data / list of files
+nv_data = datasets.fetch_neurovault(max_images=100, mode='offline')
 
 images = nv_data['images']
 images_meta = nv_data['images_meta']
 collections = nv_data['collections_meta']
 
-img = nib.load(images[0])
-data = img.get_data()
-
+# export metadata to pandas
 metadata = pd.DataFrame(images_meta)
-metadata.to_csv('metadata.csv', encoding='utf-8')
+
+# look at the metadata
+if False:
+    metadata.to_csv('metadata.csv', encoding='utf-8')
+
+if False:
+    dict_learn = DictLearning(n_components=5, smoothing_fwhm=6.,
+                              memory="nilearn_cache", memory_level=2,
+                              random_state=0)
+    dict_learn.fit(images)
+    components_img = dict_learn.components_img_
+
+# plot statistical maps
+if False:
+    img = nib.load(images[0])
+    data = img.get_data()
+    plotting.plot_glass_brain(img)
+    plt.show()
