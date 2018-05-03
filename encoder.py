@@ -34,6 +34,8 @@ metadata_df['is_motor'] = metadata_df.applymap(func).any(axis=1)
 motor_idxs = np.where(metadata_df['is_motor'])[0]
 other_idxs = np.where(np.invert(metadata_df['is_motor']))[0]
 
+other_idxs = np.random.choice(other_idxs, len(motor_idxs))
+
 images_motor = [images[idx] for idx in motor_idxs]
 images_other = [images[idx] for idx in other_idxs]
 
