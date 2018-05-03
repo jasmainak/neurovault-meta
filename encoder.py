@@ -1,10 +1,11 @@
+import os.path as op
+
 import nibabel as nib
 import numpy as np
 import pandas as pd
 
 from nilearn import datasets
-from nilearn.image import resample_to_img
-from nilearn.plotting import plot_glass_brain
+from nilearn.plotting import plot_stat_map
 
 from mne.externals.six import string_types
 
@@ -45,14 +46,21 @@ images_motor = [images[idx] for idx in motor_idxs]
 images_other = [images[idx] for idx in other_idxs]
 
 
+def read_resampled_img(img_fname):
+    collection, name = img_fname.split('/')[-2:]
+    fname = op.join('neurovault_resampled',
+                    collection, name)
+    img = nib.load(fname)
+    return img
+
+
 def average_maps(img_fnames, target_img):
     avg = np.zeros_like(target_img.dataobj)
     for ii, image_fname in enumerate(img_fnames):
-        img = nib.load(image_fname)
-        img = resample_to_img(img, target_img)
-        avg += img.dataobj
+        img = read_resampled_img(image_fname)
+        avg += img.get_data()
         print('Resampling image %d (max = %f)'
-              % (ii, img.dataobj.max()))
+              % (ii, img.get_data().max()))
     avg /= len(img_fnames)
     return avg
 
@@ -62,4 +70,4 @@ avg_motor = average_maps(images_motor, target_img)
 avg_other = average_maps(images_other, target_img)
 contrast = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
 
-plot_glass_brain(contrast, plot_abs=True, colorbar=True)
+plot_stat_map(contrast, vmax=100)
