@@ -6,6 +6,8 @@ from nilearn import datasets
 from nilearn.image import resample_to_img
 from nilearn.plotting import plot_glass_brain
 
+from mne.externals.six import string_types
+
 # get data / list of files
 nv_data = datasets.fetch_neurovault(max_images=None,
                                     mode='offline')
@@ -19,7 +21,15 @@ collections = nv_data['collections_meta']
 # export metadata to pandas
 metadata_df = pd.DataFrame(images_meta)
 
-metadata_df['is_motor'] = metadata_df['name'].apply(lambda x: 'motor' in x)
+
+def func(x):
+    if isinstance(x, string_types):
+        return 'motor' in x
+    else:
+        return False
+
+
+metadata_df['is_motor'] = metadata_df.applymap(func).any(axis=1)
 
 motor_idxs = np.where(metadata_df['is_motor'])[0]
 other_idxs = np.where(np.invert(metadata_df['is_motor']))[0]
@@ -44,4 +54,4 @@ avg_motor = average_maps(images_motor, target_img)
 avg_other = average_maps(images_other, target_img)
 contrast = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
 
-plot_glass_brain(contrast, plot_abs=True)
+plot_glass_brain(contrast, plot_abs=True, colorbar=True)
