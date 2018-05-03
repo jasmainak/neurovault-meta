@@ -38,14 +38,14 @@ images_motor = [images[idx] for idx in motor_idxs]
 images_other = [images[idx] for idx in other_idxs]
 
 
-def average_maps(images, target_img):
+def average_maps(img_fnames, target_img):
     avg = np.zeros_like(target_img.dataobj)
-    for ii, image in enumerate(images):
+    for ii, image_fname in enumerate(img_fnames):
         print('Resampling image %d' % ii)
-        img = nib.load(image)
+        img = nib.load(image_fname)
         img = resample_to_img(img, target_img)
         avg += img.dataobj
-    avg /= len(images)
+    avg /= len(img_fnames)
     return avg
 
 
