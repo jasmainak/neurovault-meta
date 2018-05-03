@@ -29,7 +29,7 @@ metadata_df = pd.DataFrame(images_meta)
 
 def func(x):
     if isinstance(x, string_types):
-        return 'language' in x
+        return 'motor' in x
     else:
         return False
 
@@ -85,7 +85,7 @@ avg_motor = average_maps(images_motor, target_img)
 avg_other = average_maps(images_other, target_img)
 
 contrast_img = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
-avg_img = nib.Nifti1Image(avg_motor, target_img.affine, plot_abs=False)
+avg_img = nib.Nifti1Image(avg_motor, target_img.affine)
 plot_glass_brain(avg_img, plot_abs=False)
 
 # surface
