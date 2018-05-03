@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import os.path as op
 
 import nibabel as nib
@@ -5,13 +6,16 @@ import numpy as np
 import pandas as pd
 
 from nilearn import datasets
-from nilearn.plotting import plot_stat_map
-
+from nilearn import surface
+from nilearn.plotting import (plot_stat_map, plot_glass_brain,
+                              plot_surf_stat_map)
 from mne.externals.six import string_types
+
+data_dir = '/home/mainak/Desktop/neurovault/'
 
 # get data / list of files
 nv_data = datasets.fetch_neurovault(max_images=None,
-                                    mode='offline')
+                                    mode='offline', data_dir=data_dir)
 
 # just average maps containing a certain term
 
@@ -25,7 +29,7 @@ metadata_df = pd.DataFrame(images_meta)
 
 def func(x):
     if isinstance(x, string_types):
-        return 'motor' in x
+        return 'language' in x
     else:
         return False
 
@@ -55,19 +59,37 @@ def read_resampled_img(img_fname):
 
 
 def average_maps(img_fnames, target_img):
-    avg = np.zeros_like(target_img.dataobj)
+    avg = np.zeros_like(target_img.get_data())
+    n_images = 0
     for ii, image_fname in enumerate(img_fnames):
         img = read_resampled_img(image_fname)
-        avg += img.get_data()
-        print('Resampling image %d (max = %f)'
+        try:
+            data = img.get_data()
+        except IOError:
+            print('Skipping')
+            continue
+        print('Image %d (max = %f)'
               % (ii, img.get_data().max()))
-    avg /= len(img_fnames)
+        if not np.any(np.isnan(data / data.std())):
+            avg += data / data.std()
+            n_images += 1
+        else:
+            print('Skipping ...')
+            continue
+    avg /= n_images
     return avg
 
 
 target_img = nib.load(images[0])
 avg_motor = average_maps(images_motor, target_img)
 avg_other = average_maps(images_other, target_img)
-contrast = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
 
-plot_stat_map(contrast, vmax=100)
+contrast_img = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
+avg_img = nib.Nifti1Image(avg_motor, target_img.affine, plot_abs=False)
+plot_glass_brain(avg_img, plot_abs=False)
+
+# surface
+fsaverage = datasets.fetch_surf_fsaverage5()
+texture = surface.vol_to_surf(contrast_img, fsaverage.pial_right)
+plot_surf_stat_map(fsaverage.infl_right, texture, symmetric_cbar=True)
+plt.show()
