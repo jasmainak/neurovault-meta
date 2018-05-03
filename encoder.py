@@ -30,9 +30,14 @@ def func(x):
 
 
 metadata_df['is_motor'] = metadata_df.applymap(func).any(axis=1)
-
-motor_idxs = np.where(metadata_df['is_motor'])[0]
-other_idxs = np.where(np.invert(metadata_df['is_motor']))[0]
+motor_idxs = np.where(
+    np.all(np.array([metadata_df['is_motor'].values,
+                    (metadata_df['map_type'] == 'Z map').values]),
+           axis=0))[0]
+other_idxs = np.where(
+    np.all(np.array([np.invert(metadata_df['is_motor'].values),
+                    (metadata_df['map_type'] == 'Z map').values]),
+           axis=0))[0]
 
 other_idxs = np.random.choice(other_idxs, len(motor_idxs))
 
@@ -43,10 +48,11 @@ images_other = [images[idx] for idx in other_idxs]
 def average_maps(img_fnames, target_img):
     avg = np.zeros_like(target_img.dataobj)
     for ii, image_fname in enumerate(img_fnames):
-        print('Resampling image %d' % ii)
         img = nib.load(image_fname)
         img = resample_to_img(img, target_img)
         avg += img.dataobj
+        print('Resampling image %d (max = %f)'
+              % (ii, img.dataobj.max()))
     avg /= len(img_fnames)
     return avg
 
