@@ -1,33 +1,27 @@
 import matplotlib.pyplot as plt
 
+import pandas as pd
 import nibabel as nib
 import numpy as np
-import pandas as pd
 
 from nilearn import datasets
 from nilearn import surface
 from nilearn.plotting import (plot_stat_map, plot_glass_brain,
                               plot_surf_stat_map)
 from mne.externals.six import string_types
+from mne.utils import ProgressBar
 
 from utils import read_resampled_img
 
 # data_dir = None for default home directory
 data_dir = '/home/mainak/Desktop/neurovault/'
-search_term = 'memory'
-
-# get data / list of files
-nv_data = datasets.fetch_neurovault(max_images=None,
-                                    mode='offline', data_dir=data_dir)
-
-# just average maps containing a certain term
-
-images = nv_data['images']
-images_meta = nv_data['images_meta']
-collections = nv_data['collections_meta']
+search_term = 'motor'
 
 # export metadata to pandas
-metadata_df = pd.DataFrame(images_meta)
+print('Loading metadata')
+metadata_df = pd.read_csv('metadata.csv', low_memory=False)
+images = metadata_df.images
+print('Done')
 
 
 def func(x):
@@ -53,35 +47,49 @@ images_effect = [images[idx] for idx in effect_idxs]
 images_other = [images[idx] for idx in other_idxs]
 
 
-def average_maps(img_fnames, target_img):
+def average_maps(img_fnames, target_img, desc):
     avg = np.zeros_like(target_img.get_data())
     n_images = 0
-    for ii, image_fname in enumerate(img_fnames):
+    print('')
+    for ii, image_fname in enumerate(ProgressBar(
+            img_fnames, mesg=desc, spinner=True)):
+        collection, name = image_fname.split('/')[-2:]
         img = read_resampled_img(image_fname)
         try:
             data = img.get_data()
         except IOError:
-            print('Skipping')
             continue
-        print('Image %d (max = %f)'
-              % (ii, img.get_data().max()))
+        # print('Image %d (max = %f)'
+        #       % (ii, img.get_data().max()))
         if not np.any(np.isnan(data / data.std())):
             avg += data / data.std()
             n_images += 1
         else:
-            print('Skipping ...')
             continue
     avg /= n_images
     return avg
 
 
+def get_collection_counts(img_fnames):
+    counts = dict()
+    for ii, image in enumerate(img_fnames):
+        collection, name = image.split('/')[-2:]
+        counts[collection] = counts.get(collection, 0) + 1
+    return counts
+
+
+# counts = get_collection_counts(images)
+
 target_img = nib.load(images[0])
-avg_effect = average_maps(images_effect, target_img)
-avg_other = average_maps(images_other, target_img)
+desc = 'Average maps for %s' % search_term
+avg_effect = average_maps(images_effect, target_img, desc)
+desc = 'Average other maps'
+avg_other = average_maps(images_other, target_img, desc)
 
 contrast_img = nib.Nifti1Image(avg_effect - avg_other, target_img.affine)
 avg_img = nib.Nifti1Image(avg_effect, target_img.affine)
-plot_glass_brain(avg_img, plot_abs=False)
+fig = plot_glass_brain(contrast_img, plot_abs=False)
+fig.savefig('figures/encoder_%s.png' % search_term)
 
 # surface
 fsaverage = datasets.fetch_surf_fsaverage5()
