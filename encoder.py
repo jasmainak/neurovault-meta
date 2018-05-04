@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import os.path as op
 
 import nibabel as nib
 import numpy as np
@@ -11,7 +10,11 @@ from nilearn.plotting import (plot_stat_map, plot_glass_brain,
                               plot_surf_stat_map)
 from mne.externals.six import string_types
 
+from utils import read_resampled_img
+
+# data_dir = None for default home directory
 data_dir = '/home/mainak/Desktop/neurovault/'
+search_term = 'memory'
 
 # get data / list of files
 nv_data = datasets.fetch_neurovault(max_images=None,
@@ -29,33 +32,25 @@ metadata_df = pd.DataFrame(images_meta)
 
 def func(x):
     if isinstance(x, string_types):
-        return 'motor' in x
+        return search_term in x
     else:
         return False
 
 
-metadata_df['is_motor'] = metadata_df.applymap(func).any(axis=1)
-motor_idxs = np.where(
-    np.all(np.array([metadata_df['is_motor'].values,
+metadata_df['is_effect'] = metadata_df.applymap(func).any(axis=1)
+effect_idxs = np.where(
+    np.all(np.array([metadata_df['is_effect'].values,
                     (metadata_df['map_type'] == 'Z map').values]),
            axis=0))[0]
 other_idxs = np.where(
-    np.all(np.array([np.invert(metadata_df['is_motor'].values),
+    np.all(np.array([np.invert(metadata_df['is_effect'].values),
                     (metadata_df['map_type'] == 'Z map').values]),
            axis=0))[0]
 
-other_idxs = np.random.choice(other_idxs, len(motor_idxs))
+other_idxs = np.random.choice(other_idxs, len(effect_idxs))
 
-images_motor = [images[idx] for idx in motor_idxs]
+images_effect = [images[idx] for idx in effect_idxs]
 images_other = [images[idx] for idx in other_idxs]
-
-
-def read_resampled_img(img_fname):
-    collection, name = img_fname.split('/')[-2:]
-    fname = op.join('neurovault_resampled',
-                    collection, name)
-    img = nib.load(fname)
-    return img
 
 
 def average_maps(img_fnames, target_img):
@@ -81,11 +76,11 @@ def average_maps(img_fnames, target_img):
 
 
 target_img = nib.load(images[0])
-avg_motor = average_maps(images_motor, target_img)
+avg_effect = average_maps(images_effect, target_img)
 avg_other = average_maps(images_other, target_img)
 
-contrast_img = nib.Nifti1Image(avg_motor - avg_other, target_img.affine)
-avg_img = nib.Nifti1Image(avg_motor, target_img.affine)
+contrast_img = nib.Nifti1Image(avg_effect - avg_other, target_img.affine)
+avg_img = nib.Nifti1Image(avg_effect, target_img.affine)
 plot_glass_brain(avg_img, plot_abs=False)
 
 # surface
