@@ -3,7 +3,8 @@ import nibabel as nib
 
 from nilearn import datasets
 from nilearn.input_data import NiftiMapsMasker
-from nilearn.image import resample_to_img
+
+from utils import read_resampled_img
 
 data_dir = '/home/mainak/Desktop/neurovault/'
 
@@ -15,12 +16,13 @@ data_dir = '/home/mainak/Desktop/neurovault/'
 #    (some are subject level, some are group level)
 # 4. weighting features -- e.g., cog atlas terms
 # 5. dirty_cat for labels using ngram similarities (SimilarityEncoder)
-# 6. Encoding problem = terms to maps. Decoding problem = maps to terms
-# 7. Variance across collections ...
-# 8. Normalize before averaging? Remove p values ...
-# 9. Save resampled files
-# 10. Distribution of #images per collection
-# 11. Average over all images?
+# 6. Weighting based on collections
+# 7. Distribution of #images per collection
+# 8. Average over all images?
+# 9. Nearest neighbor to go from images to labels
+# 10. Get encoder maps for the most frequently occuring words
+# 11. Normalize by frequency of different terms in baseline
+# 12. Precompute baseline
 
 # get data / list of files
 nv_data = datasets.fetch_neurovault(max_images=None, mode='offline',
@@ -33,18 +35,14 @@ collections = nv_data['collections_meta']
 # export metadata to pandas
 metadata = pd.DataFrame(images_meta)
 
-# read arthur's parcellations
+# read Arthur Mensch's parcellations
 maps = nib.load('components_512.nii.gz')
 
-# find images with same affine
+# reduce dimensionality
 imgs = []
 for ii, image in enumerate(images):
     print('Resampling image %d' % ii)
-    img = nib.load(image)
-    img = resample_to_img(img, maps)
-    imgs.append(img)
-
-img_shape = img.get_data().shape
+    imgs.append(read_resampled_img(image))
 
 masker = NiftiMapsMasker(maps)
 X = masker.fit_transform(imgs)
